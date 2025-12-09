@@ -6,6 +6,7 @@ import { fetchDetails } from "../utils/searchApi";
 export default function InfoCard({ url, onClose }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [showImage, setShowImage] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -25,6 +26,13 @@ export default function InfoCard({ url, onClose }) {
   if (!data && !error) return <div className="overlay"><div className="card">Loading...</div></div>;
   if (error) return <div className="overlay"><div className="card">Error: {error}</div></div>;
 
+  // Hantera bild-URL
+  const imageUrl = data.image
+    ? data.image.startsWith("http")
+      ? data.image
+      : `https://www.dnd5eapi.co${data.image}`
+    : null;
+
   return (
     <div className="overlay" onClick={onClose}>
       <div className="card" onClick={(e) => e.stopPropagation()}>
@@ -33,83 +41,140 @@ export default function InfoCard({ url, onClose }) {
         <h1 className="title">{data.name}</h1>
         <div className="divider" />
 
+        {/* Visa bild-knapp */}
+{imageUrl && !showImage && (
+  <button onClick={() => setShowImage(true)}>Visa bild</button>
+)}
+
+{/* Visa bilden om showImage är true */}
+{imageUrl && showImage && (
+  <img
+    src={imageUrl}
+    alt={data.name}
+    style={{
+      width: "100%",
+      maxWidth: "400px",
+      height: "auto",
+      borderRadius: "8px",
+      marginBottom: "12px"
+    }}
+  />
+)}
+
+
       {/* Monster */}
 {data.type && (
-  <>
-    <div className="stat-block">
-      <div><strong>Type:</strong> {data.size} {data.type}, {data.alignment}</div>
-      <div><strong>Armor Class:</strong> {Array.isArray(data.armor_class) ? (data.armor_class.map(a => a.value).join(", ") || "-") : data.armor_class || "-"}</div>
-      <div><strong>Hit Points:</strong> {data.hit_points} ({data.hit_dice})</div>
-      <div><strong>Speed:</strong> {typeof data.speed === "object" ? Object.entries(data.speed).map(([k,v]) => `${k}: ${v}`).join(", ") : data.speed || "-"}</div>
-    </div>
+  <>  
+  
+
 
     <div className="stat-block">
-      <strong>Stats:</strong> STR {data.strength} | DEX {data.dexterity} | CON {data.constitution} | INT {data.intelligence} | WIS {data.wisdom} | CHA {data.charisma}
-    </div>
-
-    {data.proficiencies && data.proficiencies.length > 0 && (
-      <div><strong>Proficiencies:</strong> {data.proficiencies.map(p => p.name).join(", ")}</div>
-    )}
-
-    <div>
-      <strong>Damage Vulnerabilities:</strong> {data.damage_vulnerabilities.length ? data.damage_vulnerabilities.map(d => d.name || d).join(", ") : "None"}
-    </div>
-    <div>
-      <strong>Damage Resistances:</strong> {data.damage_resistances.length ? data.damage_resistances.map(d => d.name || d).join(", ") : "None"}
-    </div>
-    <div>
-      <strong>Damage Immunities:</strong> {data.damage_immunities.length ? data.damage_immunities.map(d => d.name || d).join(", ") : "None"}
-    </div>
-    <div>
-      <strong>Condition Immunities:</strong> {data.condition_immunities.length ? data.condition_immunities.map(c => c.name || c).join(", ") : "None"}
-    </div>
-
-    {data.senses && (
+      <div><strong>Type:</strong> {data.type}</div>
+      <div><strong>Size:</strong> {data.size}</div>
+      <div><strong>Alignment:</strong> {data.alignment}</div>
       <div>
-        <strong>Senses:</strong> {Object.entries(data.senses).map(([k,v]) => `${k}: ${v}`).join(", ")}
+        <strong>Armor Class:</strong>{" "}
+        {Array.isArray(data.armor_class) 
+          ? (data.armor_class[0]?.value ?? "-") 
+          : (data.armor_class?.base ?? "-")}
       </div>
-    )}
+      <div><strong>Hit Points:</strong> {data.hit_points ?? "-"}</div>
+      <div>
+        <strong>Speed:</strong>{" "}
+        {typeof data.speed === "object" ? Object.entries(data.speed).map(([k,v]) => `${k}: ${v}`).join(", ") : data.speed}
+      </div>
+      <div><strong>STR:</strong> {data.strength}, <strong>DEX:</strong> {data.dexterity}, <strong>CON:</strong> {data.constitution}</div>
+      <div><strong>INT:</strong> {data.intelligence}, <strong>WIS:</strong> {data.wisdom}, <strong>CHA:</strong> {data.charisma}</div>
 
-    <div><strong>Languages:</strong> {data.languages || "None"}</div>
-    <div><strong>Challenge Rating:</strong> {data.challenge_rating} | XP: {data.xp}</div>
+      {data.proficiencies && data.proficiencies.length > 0 && (
+        <div>
+          <strong>Proficiencies:</strong>{" "}
+          {data.proficiencies.map(p => `${p.proficiency.name} +${p.value}`).join(", ")}
+        </div>
+      )}
 
-    {data.special_abilities.length > 0 && (
+      {data.damage_vulnerabilities?.length > 0 && (
+        <div><strong>Vulnerabilities:</strong> {data.damage_vulnerabilities.join(", ")}</div>
+      )}
+      {data.damage_resistances?.length > 0 && (
+        <div><strong>Resistances:</strong> {data.damage_resistances.join(", ")}</div>
+      )}
+      {data.damage_immunities?.length > 0 && (
+        <div><strong>Immunities:</strong> {data.damage_immunities.join(", ")}</div>
+      )}
+      {data.condition_immunities?.length > 0 && (
+        <div><strong>Condition Immunities:</strong> {data.condition_immunities.map(c => c.name).join(", ")}</div>
+      )}
+
+      {data.senses && (
+        <div>
+          <strong>Senses:</strong>{" "}
+          {Object.entries(data.senses).map(([k,v]) => `${k}: ${v}`).join(", ")}
+        </div>
+      )}
+
+      {data.languages && <div><strong>Languages:</strong> {data.languages}</div>}
+      {data.challenge_rating && <div><strong>CR:</strong> {data.challenge_rating} ({data.xp} XP)</div>}
+    </div>
+
+    {/* Special Abilities */}
+    {data.special_abilities && data.special_abilities.length > 0 && (
       <>
         <div className="section-title">Special Abilities</div>
-        {data.special_abilities.map(sa => (
-          <div key={sa.name}><strong>{sa.name}:</strong> {sa.desc}</div>
-        ))}
+        <ul>
+          {data.special_abilities.map(sa => (
+            <li key={sa.name}>
+              <strong>{sa.name}:</strong> {sa.desc}
+            </li>
+          ))}
+        </ul>
       </>
     )}
 
-    {data.actions.length > 0 && (
+    {/* Actions */}
+    {data.actions && data.actions.length > 0 && (
       <>
         <div className="section-title">Actions</div>
-        {data.actions.map(a => (
-          <div key={a.name}><strong>{a.name}:</strong> {a.desc}</div>
-        ))}
+        <ul>
+          {data.actions.map(a => (
+            <li key={a.name}>
+              <strong>{a.name}:</strong> {a.desc}
+            </li>
+          ))}
+        </ul>
       </>
     )}
 
-    {data.legendary_actions.length > 0 && (
+    {/* Legendary Actions */}
+    {data.legendary_actions && data.legendary_actions.length > 0 && (
       <>
         <div className="section-title">Legendary Actions</div>
-        {data.legendary_actions.map(la => (
-          <div key={la.name}><strong>{la.name}:</strong> {la.desc}</div>
-        ))}
+        <ul>
+          {data.legendary_actions.map(la => (
+            <li key={la.name}>
+              <strong>{la.name}:</strong> {la.desc}
+            </li>
+          ))}
+        </ul>
       </>
     )}
 
-    {data.reactions.length > 0 && (
+    {/* Reactions */}
+    {data.reactions && data.reactions.length > 0 && (
       <>
         <div className="section-title">Reactions</div>
-        {data.reactions.map(r => (
-          <div key={r.name}><strong>{r.name}:</strong> {r.desc}</div>
-        ))}
+        <ul>
+          {data.reactions.map(r => (
+            <li key={r.name}>
+              <strong>{r.name}:</strong> {r.desc}
+            </li>
+          ))}
+        </ul>
       </>
     )}
   </>
 )}
+
 
         {/* Spell */}
 {data.school && (
@@ -179,58 +244,60 @@ export default function InfoCard({ url, onClose }) {
 )}
 
 
-        {/* Item/Weapon/Armor */}
+{/* Equipment / Weapon / Armor / Mount / Vehicle / Gear */}
 {data.equipment_category && !data.school && !data.type && (
   <>
     <div><strong>Category:</strong> {data.equipment_category?.name}</div>
 
-    {/* Armor-specific fields */}
-{data.armor_category && (
-  <div>
-    <strong>Armor Type:</strong> {data.armor_category} | 
-    <strong> AC:</strong> {data.armor_class?.base ?? "-"} {data.armor_class?.dex_bonus ? "(Dex Bonus)" : "(No Dex Bonus)"}
-  </div>
-)}
-{data.str_minimum > 0 && <div><strong>Strength Requirement:</strong> {data.str_minimum}</div>}
-{data.stealth_disadvantage && <div><strong>Stealth:</strong> Disadvantage</div>}
+    {/* Armor */}
+    {data.armor_category && (
+      <div>
+        <strong>Armor Type:</strong> {data.armor_category} | 
+        <strong> AC:</strong> {data.armor_class?.base ?? "-"} {data.armor_class?.dex_bonus ? "(Dex Bonus)" : "(No Dex Bonus)"}
+      </div>
+    )}
+    {data.str_minimum > 0 && <div><strong>Strength Requirement:</strong> {data.str_minimum}</div>}
+    {data.stealth_disadvantage && <div><strong>Stealth:</strong> Disadvantage</div>}
 
-
-    {/* Common fields */}
-    <div><strong>Cost:</strong> {data.cost?.quantity ?? "-"} {data.cost?.unit ?? ""}</div>
-    <div><strong>Weight:</strong> {data.weight ?? "-"}</div>
-
-    {/* Weapon-specific fields */}
+    {/* Weapon */}
     {data.weapon_category && <div><strong>Weapon Category:</strong> {data.weapon_category}</div>}
     {data.weapon_range && <div><strong>Weapon Range:</strong> {data.weapon_range}</div>}
-    {data.damage && (
-      <div>
-        <strong>Damage:</strong> {data.damage.damage_dice} {data.damage.damage_type?.name}
-      </div>
-    )}
+    {data.damage && <div><strong>Damage:</strong> {data.damage.damage_dice} {data.damage.damage_type?.name}</div>}
     {data.range && typeof data.range === "object" && (
-      <div>
-        <strong>Range:</strong> Normal {data.range.normal}, Long {data.range.long}
-      </div>
+      <div><strong>Range:</strong> Normal {data.range.normal}, Long {data.range.long}</div>
     )}
- 
+
+    {/* Mount / Vehicle */}
+    {data.vehicle_category && <div><strong>Vehicle/Animal Category:</strong> {data.vehicle_category}</div>}
+    {data.speed && <div><strong>Speed:</strong> {typeof data.speed === "object" ? `${data.speed.quantity} ${data.speed.unit}` : data.speed}</div>}
+    {data.capacity && <div><strong>Capacity:</strong> {data.capacity}</div>}
+
+    {/* Gear Pack */}
+    {data.gear_category && <div><strong>Gear Category:</strong> {data.gear_category?.name}</div>}
+    {data.contents?.length > 0 && (
+      <>
+        <div className="section-title">Contents</div>
+        <ul>
+          {data.contents.map((c, idx) => (
+            <li key={idx}>{c.quantity} × {c.item.name}</li>
+          ))}
+        </ul>
+      </>
+    )}
+
+    {/* Cost */}
+    {data.cost?.quantity && <div><strong>Cost:</strong> {data.cost.quantity} {data.cost.unit}</div>}
+
+    {/* Weight */}
+    {data.weight && <div><strong>Weight:</strong> {data.weight}</div>}
 
     {/* Properties */}
-    {data.properties && data.properties.length > 0 && (
+    {data.properties?.length > 0 && (
       <div style={{ marginTop: 6, textAlign: "center" }}>
         <strong>Properties:</strong>
         <div style={{ display: "inline-flex", flexWrap: "wrap", gap: "6px", marginTop: "4px", justifyContent: "center" }}>
           {data.properties.map((p) => (
-            <span
-              key={p.index}
-              style={{
-                background: "#7a2b1e",
-                color: "white",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                fontSize: "0.8rem",
-                fontWeight: "bold",
-              }}
-            >
+            <span key={p.index} style={{ background: "#7a2b1e", color: "white", padding: "2px 8px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "bold" }}>
               {p.name}
             </span>
           ))}
@@ -239,7 +306,7 @@ export default function InfoCard({ url, onClose }) {
     )}
 
     {/* Description */}
-    {data.desc && data.desc.length > 0 && (
+    {data.desc?.length > 0 && (
       <>
         <div className="section-title">Description</div>
         <div style={{ whiteSpace: "pre-wrap" }}>{data.desc.join("\n\n")}</div>
